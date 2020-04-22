@@ -2,6 +2,13 @@
 
 import sys
 
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
+
 
 class CPU:
     """Main CPU class."""
@@ -12,6 +19,8 @@ class CPU:
         self.reg = [0] * 8  # 8 general purpose registers: 8 bits
         self.pc = 0
         self.ram = [0] * 256  # 256 bytes of memory
+        self.sp = 7  # stack_pointer
+        self.reg[self.sp] = 0xF4  # points to 0xF4 index in self.ram
 
     # ram_read() accepts the address to read and return the value stored there.
     # The MAR contains the address that is being read or written to.
@@ -78,10 +87,6 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        HLT = 0b00000001
-        LDI = 0b10000010
-        PRN = 0b01000111
-        MUL = 0b10100010
         running = True
 
         while running:
@@ -100,8 +105,15 @@ class CPU:
                 self.pc += 2
             elif ir == MUL:
                 print(self.alu("MUL", operand_a, operand_b))
-                # print(self.reg[operand_a] * self.reg[operand_b])
                 self.pc += 3
+            elif ir == PUSH:
+                self.reg[self.sp] -= 1
+                self.ram[self.reg[self.sp]] = self.reg[operand_a]
+                self.pc += 2
+            elif ir == POP:
+                self.reg[operand_a] = self.ram[self.reg[self.sp]]
+                self.reg[self.sp] += 1
+                self.pc += 2
             else:
                 print("Unknown instruction")
                 running = False

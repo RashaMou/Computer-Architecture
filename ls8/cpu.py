@@ -8,6 +8,9 @@ PRN = 0b01000111
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
+ADD = 0b10100000
 
 
 class CPU:
@@ -104,7 +107,10 @@ class CPU:
                 print(self.reg[operand_a])
                 self.pc += 2
             elif ir == MUL:
-                print(self.alu("MUL", operand_a, operand_b))
+                self.alu("MUL", operand_a, operand_b)
+                self.pc += 3
+            elif ir == ADD:
+                self.alu("ADD", operand_a, operand_b)
                 self.pc += 3
             elif ir == PUSH:
                 self.reg[self.sp] -= 1
@@ -114,6 +120,13 @@ class CPU:
                 self.reg[operand_a] = self.ram[self.reg[self.sp]]
                 self.reg[self.sp] += 1
                 self.pc += 2
+            elif ir == CALL:
+                self.reg[self.sp] -= 1
+                self.ram[self.reg[self.sp]] = self.pc + 2
+                self.pc = self.reg[self.ram[self.pc + 1]]
+            elif ir == RET:
+                self.pc = self.ram[self.reg[self.sp]]
+                self.reg[self.sp] += 1
             else:
                 print("Unknown instruction")
                 running = False

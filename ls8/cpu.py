@@ -11,6 +11,10 @@ POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
 ADD = 0b10100000
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 
 class CPU:
@@ -24,6 +28,7 @@ class CPU:
         self.ram = [0] * 256  # 256 bytes of memory
         self.sp = 7  # stack_pointer
         self.reg[self.sp] = 0xF4  # points to 0xF4 index in self.ram
+        self.FL = 0
 
     # ram_read() accepts the address to read and return the value stored there.
     # The MAR contains the address that is being read or written to.
@@ -54,13 +59,20 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "SUB":
             self.reg[reg_a] -= self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            # Flag pattern is 00000LGE
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.FL = 0b00000010
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.FL = 0b00000100
+            elif self.reg[reg_b] == self.reg[reg_b]:
+                self.FL = 0b00000001
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -74,7 +86,7 @@ class CPU:
             f"TRACE: %02X | %02X %02X %02X |"
             % (
                 self.pc,
-                # self.fl,
+                self.fl,
                 # self.ie,
                 self.ram_read(self.pc),
                 self.ram_read(self.pc + 1),
@@ -127,6 +139,21 @@ class CPU:
             elif ir == RET:
                 self.pc = self.ram[self.reg[self.sp]]
                 self.reg[self.sp] += 1
+            elif ir == CMP:
+                self.alu("CMP", operand_a, operand_b)
+                self.pc += 3
+            elif ir == JMP:
+                self.pc = self.reg[operand_a]
+            elif ir == JEQ:
+                if self.FL == 0b00000001:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
+            elif ir == JNE:
+                if self.FL != 0b00000001:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
             else:
                 print("Unknown instruction")
                 running = False
